@@ -22,11 +22,35 @@ app.post("/getotp",async(req,res)=>{
         const otp=Math.floor(1000+Math.random()*9000)
         await redis.set(phone,otp,"EX",300)
         res.send({message:`OTP sent successfully to ${phone}`,otp:otp})
+        
     }else{
         res.status(400).send({message:"Invalid phone number"})
     }
 })
 
+app.get("/getotp/:phone",async(req,res)=>{
+    const {phone}=req.params
+    const otp=await redis.get(phone)
+    if(otp){
+        res.send({message:`OTP for ${phone} is ${otp}`})
+        const timeLeft = await redis.ttl(`otp:${phone}`);
+        console.log(timeLeft)
+    }else{
+        res.status(400).send({message:"Invalid phone number"})
+    }
+})
+app.post('/verifyotp/:phone',async(req,res)=>{
+    const{phone}=req.params
+    const {otp}=req.body
+    const realotp=await redis.get(phone)
+    console.log(realotp,otp)
+    if(realotp==otp){
+        res.send({message:"OTP verified successfully"})
+    }else{
+        res.send({message:"Invalid OTP"})
+    }
+   
+})
 app.get("/mongodb",async (req,res)=>{
     try{
         await mongoose.connect(process.env.MONGO_URL||'mongodb://localhost:27017');
