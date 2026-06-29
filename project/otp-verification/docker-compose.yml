@@ -1,0 +1,26 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: redis-otp
+    ports:
+      - "6379:6379"
+    command: ["redis-server","--appendonly","yes"]
+    volumes:
+      - redis-data:/data
+
+
+
+  mongo:
+    image: mongo:7
+    container_name: mongo-otp 
+    ports:
+        - "27017:27017"
+    environment:
+      - MONGO_INIT_DATABASE:redis-otp
+    volumes:
+      - mongo-data:/data/db
+
+
+volumes:
+  redis-data:
+  mongo-data:
