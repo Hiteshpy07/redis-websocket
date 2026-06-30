@@ -7,6 +7,10 @@ app.use(express.json());
 
 const redis=new Redis(process.env.REDIS_URL|| 'redis://localhost:6379');
 
+const attempts=0
+const [timeout, setTimeoutValue] = useState(30); // 5 minutes in seconds
+
+
 app.get("/",async (req,res)=>{
     const reply=await redis.ping()
     res.send(reply)
@@ -20,7 +24,23 @@ app.post("/getotp",async(req,res)=>{
     console.log(phone)
     if(phone ){
         const otp=Math.floor(1000+Math.random()*9000)
-        await redis.set(phone,otp,"EX",300)
+        if (attempts>=3){
+            res.status(400).send({message:"Maximum attempts reached"})
+            return
+        } else if (attempts>0){
+            if(attempts==1){
+                setTimeoutValue(30)
+            }else if(attempts==2){
+                setTimeoutValue(60)
+            }else if(attempts==3){
+                setTimeoutValue(120)
+            }
+            res.status(400).send({message:`You have ${3-attempts} attempts left`})
+            return
+        }
+        await redis.set(phone,otp,"EX",timeout)
+        attempts+=1
+        await redis.set(`attempts:${phone}`,attempts)
         res.send({message:`OTP sent successfully to ${phone}`,otp:otp})
         
     }else{
@@ -31,9 +51,12 @@ app.post("/getotp",async(req,res)=>{
 app.get("/getotp/:phone",async(req,res)=>{
     const {phone}=req.params
     const otp=await redis.get(phone)
+    const attemptsofotp=await redis.get(`attempts:${phone}`)
     if(otp){
         res.send({message:`OTP for ${phone} is ${otp}`})
-        const timeLeft = await redis.ttl(`otp:${phone}`);
+        res.send({message:`retry in ${timeout} seconds`})
+        res.send({message:`You have ${3-attemptsofotp} attempts left`})
+        // const timeLeft = await redis.ttl(`otp:${phone}`);
         console.log(timeLeft)
     }else{
         res.status(400).send({message:"Invalid phone number"})
