@@ -1,6 +1,11 @@
 import Redis from "ioredis";
 import express from "express";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 
 const app=express();
 app.use(express.json());
@@ -8,7 +13,8 @@ app.use(express.json());
 const redis=new Redis(process.env.REDIS_URL|| 'redis://localhost:6379');
 
 const attempts=0
-const [timeout, setTimeoutValue] = useState(30); // 5 minutes in seconds
+const timeout=30;// 5 minutes in seconds
+const jwtSecret=process.env.JWT_SECRET
 
 
 app.get("/",async (req,res)=>{
@@ -29,11 +35,11 @@ app.post("/getotp",async(req,res)=>{
             return
         } else if (attempts>0){
             if(attempts==1){
-                setTimeoutValue(30)
+                timeout=30
             }else if(attempts==2){
-                setTimeoutValue(60)
+                timeout=60
             }else if(attempts==3){
-                setTimeoutValue(120)
+                timeout=120
             }
             res.status(400).send({message:`You have ${3-attempts} attempts left`})
             return
@@ -67,10 +73,29 @@ app.post('/verifyotp/:phone',async(req,res)=>{
     const {otp}=req.body
     const realotp=await redis.get(phone)
     console.log(realotp,otp)
+    if(!realotp){
+        res.status(400).send({message:"OTP expired or invalid"})
+        return
+    }
+    else if(!otp){
+        res.status(400).send({message:"Please provide OTP"})
+        return
+    }
     if(realotp==otp){
-        res.send({message:"OTP verified successfully"})
+        token=jwt.sign(
+            {phon:phone},
+            jwtSecret,
+            {expiresIn:"1h"}
+        )
+        res.send({
+            message:"OTP verified successfully",
+            token:token
+        })
+
     }else{
-        res.send({message:"Invalid OTP"})
+        res.send({message:"Invalid OTP"
+
+        })
     }
    
 })
