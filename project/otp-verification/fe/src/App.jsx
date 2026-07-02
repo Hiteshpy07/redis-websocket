@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import axios from "axios"
 
 const DEMO_OTP = "123456";
 const RESEND_SECONDS = 30;
@@ -8,6 +9,7 @@ export default function OtpVerificationApp() {
   const [stage, setStage] = useState("phone"); // phone | otp | success | locked
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [sendotpbtn,setsendotpbtn]=useState(false)
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpError, setOtpError] = useState("");
@@ -16,6 +18,19 @@ export default function OtpVerificationApp() {
   const [toast, setToast] = useState("");
 
   const inputsRef = useRef([]);
+
+useEffect(()=>{
+  axios.post('http://localhost:3000/getotp',{
+    phone:phone
+  }).then((res)=>{
+    console.log("Request sent");
+    console.log(res.data)
+  }).catch((err)=>{
+    console.log("Request failed");
+    console.log(err)
+  })
+},[sendotpbtn])
+
 
   useEffect(() => {
     if (stage !== "otp") return;
@@ -38,6 +53,7 @@ export default function OtpVerificationApp() {
       setPhoneError("Enter a valid 10-digit mobile number.");
       return;
     }
+    setsendotpbtn(true)
     setPhoneError("");
     setOtp(["", "", "", "", "", ""]);
     setOtpError("");
@@ -193,7 +209,9 @@ function PhoneStage({ phone, setPhone, phoneError, onSend }) {
               maxLength={10}
               placeholder="9876543210"
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+              onChange={(e) => {
+                 
+                setPhone(e.target.value.replace(/[^0-9]/g, ""));}}
             />
           </div>
         </div>

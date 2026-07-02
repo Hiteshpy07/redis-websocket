@@ -3,15 +3,17 @@ import express from "express";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
 
 const app=express();
 app.use(express.json());
-
+app.use(cors({
+    origin:"*"
+}))
 const redis=new Redis(process.env.REDIS_URL|| 'redis://localhost:6379');
-
 const attempts=0
 const timeout=30;// 5 minutes in seconds
 const jwtSecret=process.env.JWT_SECRET
@@ -23,12 +25,19 @@ app.get("/",async (req,res)=>{
 })
 
 app.post("/getotp",async(req,res)=>{
-    const {phone}=req.body
+    const phone=req.body.phone
     const typeofphone=typeof phone
     console.log(typeofphone)
     // const phonelength=phone.length
     console.log(phone)
     if(phone ){
+        const attemptsKey = `attempts:${phone}`;
+        let attempts = parseInt(await redis.get(attemptsKey)) || 0;
+
+        // 2. Enforce max attempts check BEFORE anything else
+        if (attempts >= 3) {
+            return res.status(400).send({ message: "Maximum attempts reached. Try again later." });
+        }
         const otp=Math.floor(1000+Math.random()*9000)
         if (attempts>=3){
             res.status(400).send({message:"Maximum attempts reached"})
