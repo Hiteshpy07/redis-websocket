@@ -24,7 +24,101 @@ export default function OtpVerificationApp() {
     return () => clearTimeout(t);
   }, [stage, secondsLeft]);
 
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000); // Bumped to 3s so you have time to copy the console/demo OTP hint!
+  }
 
+  function validatePhone(value) {
+    return /^[0-9]{10}$/.test(value);
+  }
+
+  // 1. HANDLER TO REQUEST NEW OTP FROM BACKEND
+  async function handleSendOtp() {
+    if (!validatePhone(phone)) {
+      setPhoneError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    setPhoneError("");
+
+    try {
+      const res = await axios.post('http://localhost:3000/getotp', { phone: phone });
+      
+      setOtp(["", "", "", "", "", ""]);
+      setOtpError("");
+      setAttemptsLeft(res.data.attemptsLeft);
+      setSecondsLeft(res.data.cooldown); // Syncs directly to the Redis dynamic sliding delay
+      setStage("otp");
+      showToast(`Demo Hint! Code is: ${res.data.otp}`);
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || "Request failed.";
+      setPhoneError(errorMsg);
+      showToast(errorMsg);
+    }
+  }
+
+  // 2. HANDLER TO VERIFY SUBMITTED CODE WITH BACKEND
+  async function handleVerify() {
+    const code = otp.join(""); // Converts array ["1","2"...] into a clean string "123456"
+    if (code.length < 6) {
+      setOtpError("Please enter all 6 digits.");
+      return;
+    }
+
+    try {
+      const res = await axios.post(`http://localhost:3000/verifyotp/${phone}`, { otp: code });
+      
+      // Store returned JWT securely for future WebSocket upgrades!
+      localStorage.setItem("userToken", res.data.token);
+      
+      setStage("success");
+      showToast("Authorized!");
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || "Invalid Code.";
+      setOtpError(errorMsg);
+      
+      // Reduce visual counter metric locally
+      setAttemptsLeft((prev) => {
+        const nextVal = prev - 1;
+        if (nextVal <= 0) setStage("locked");
+        return nextVal;
+      });
+    }
+  }
+
+  // 3. HANDLER FOR RESEND ACTION
+  async function handleResend() {
+    if (secondsLeft > 0) return;
+    // Simply run the request logic again—our backend handles checking the sliding limit counts!
+    await handleSendOtp();
+    setTimeout(() => inputsRef.current[0]?.focus(), 50);
+  }
+
+  function handleOtpChange(index, value) {
+    if (!/^[0-9]?$/.test(value)) return;
+    const next = [...otp];
+    next[index] = value;
+    setOtp(next);
+    if (value && index < 5) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  }
+
+  function handleKeyDown(index, e) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  }
+
+  function handleStartOver() {
+    setStage("phone");
+    setPhone("");
+    setPhoneError("");
+    setOtp(["", "", "", "", "", ""]);
+    setOtpError("");
+    setAttemptsLeft(MAX_ATTEMPTS);
+    setSecondsLeft(30);
+  }
 
   return (
     <div style={styles.desktop}>
