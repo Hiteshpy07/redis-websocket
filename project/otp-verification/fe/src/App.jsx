@@ -1,37 +1,22 @@
 import { useState, useEffect, useRef } from "react";
-import axios from "axios"
+import axios from "axios";
 
-const DEMO_OTP = "123456";
-const RESEND_SECONDS = 30;
 const MAX_ATTEMPTS = 3;
 
 export default function OtpVerificationApp() {
   const [stage, setStage] = useState("phone"); // phone | otp | success | locked
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
-  const [sendotpbtn,setsendotpbtn]=useState(false)
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpError, setOtpError] = useState("");
   const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS);
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState(30);
   const [toast, setToast] = useState("");
 
   const inputsRef = useRef([]);
 
-useEffect(()=>{
-  axios.post('http://localhost:3000/getotp',{
-    phone:phone
-  }).then((res)=>{
-    console.log("Request sent");
-    console.log(res.data)
-  }).catch((err)=>{
-    console.log("Request failed");
-    console.log(err)
-  })
-},[sendotpbtn])
-
-
+  // Timer Countdown Effect
   useEffect(() => {
     if (stage !== "otp") return;
     if (secondsLeft <= 0) return;
@@ -39,86 +24,7 @@ useEffect(()=>{
     return () => clearTimeout(t);
   }, [stage, secondsLeft]);
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(""), 1800);
-  }
 
-  function validatePhone(value) {
-    return /^[0-9]{10}$/.test(value);
-  }
-
-  function handleSendOtp() {
-    if (!validatePhone(phone)) {
-      setPhoneError("Enter a valid 10-digit mobile number.");
-      return;
-    }
-    setsendotpbtn(true)
-    setPhoneError("");
-    setOtp(["", "", "", "", "", ""]);
-    setOtpError("");
-    setAttemptsLeft(MAX_ATTEMPTS);
-    setSecondsLeft(RESEND_SECONDS);
-    setStage("otp");
-    showToast("OTP sent to +91 " + phone);
-  }
-
-  function handleResend() {
-    if (secondsLeft > 0) return;
-    setOtp(["", "", "", "", "", ""]);
-    setOtpError("");
-    setSecondsLeft(RESEND_SECONDS);
-    showToast("A new OTP has been sent.");
-    inputsRef.current[0]?.focus();
-  }
-
-  function handleOtpChange(index, value) {
-    if (!/^[0-9]?$/.test(value)) return;
-    const next = [...otp];
-    next[index] = value;
-    setOtp(next);
-    if (value && index < 5) {
-      inputsRef.current[index + 1]?.focus();
-    }
-  }
-
-  function handleKeyDown(index, e) {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    }
-  }
-
-  function handleVerify() {
-    const code = otp.join("");
-    if (code.length < 6) {
-      setOtpError("Please enter all 6 digits.");
-      return;
-    }
-    if (code === DEMO_OTP) {
-      setOtpError("");
-      setStage("success");
-      return;
-    }
-    const remaining = attemptsLeft - 1;
-    setAttemptsLeft(remaining);
-    setOtp(["", "", "", "", "", ""]);
-    inputsRef.current[0]?.focus();
-    if (remaining <= 0) {
-      setStage("locked");
-    } else {
-      setOtpError("Incorrect OTP. " + remaining + " attempt" + (remaining === 1 ? "" : "s") + " left.");
-    }
-  }
-
-  function handleStartOver() {
-    setStage("phone");
-    setPhone("");
-    setPhoneError("");
-    setOtp(["", "", "", "", "", ""]);
-    setOtpError("");
-    setAttemptsLeft(MAX_ATTEMPTS);
-    setSecondsLeft(RESEND_SECONDS);
-  }
 
   return (
     <div style={styles.desktop}>
@@ -209,9 +115,7 @@ function PhoneStage({ phone, setPhone, phoneError, onSend }) {
               maxLength={10}
               placeholder="9876543210"
               value={phone}
-              onChange={(e) => {
-                 
-                setPhone(e.target.value.replace(/[^0-9]/g, ""));}}
+              onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
             />
           </div>
         </div>
@@ -244,7 +148,7 @@ function OtpStage({
     <div>
       <Panel title={"Verify code sent to +91 " + phone}>
         <p style={styles.helpText}>
-          Enter the 6-digit code. (Hint for demo: 123456)
+          Enter the 6-digit code.
         </p>
 
         <div style={styles.otpRow}>
@@ -318,7 +222,7 @@ function LockedStage({ onRestart }) {
         Too Many Attempts
       </div>
       <p style={styles.helpText}>
-        You have used all {MAX_ATTEMPTS} attempts. Please start over.
+        You have used all attempts or are locked out by the server. Please try again later.
       </p>
       <div style={styles.buttonRow}>
         <button style={styles.xpButton} onClick={onRestart}>
