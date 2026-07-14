@@ -43,7 +43,7 @@ setupRedisSubscription().catch(console.error);
 //IOSOCKET CONNECTION
 io.on('connection',(socket)=>{
     console.log(`New client connected: ${socket.id}`);
-});
+
 
 socket.on('join_room',(roomID)=>{
     socket.join(roomID);
@@ -61,7 +61,7 @@ socket.on('send_chat_message',(data)=>{
 socket.on('disconnect', () => {
     console.log(`🛑 Disconnected: ${socket.id}`);
   });
-
+});
   server.listen(3001, () => {
-  console.log('🚀 co-sketch be on port 3001');
+  console.log('🚀 co-sketch on port 3001');
 });
