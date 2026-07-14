@@ -38,3 +38,30 @@ async function setupRedisSubscription() {
   });
 }
 setupRedisSubscription().catch(console.error);
+
+
+//IOSOCKET CONNECTION
+io.on('connection',(socket)=>{
+    console.log(`New client connected: ${socket.id}`);
+});
+
+socket.on('join_room',(roomID)=>{
+    socket.join(roomID);
+    console.log(`Client ${socket.id} joined room ${roomID}`);
+
+})
+
+socket.on('send_chat_message',(data)=>{
+    console.log(`Received message from client ${socket.id}: ${data.message}`);
+    // Publish the message to the Redis channel
+    console.log(`⚡ Publishing to Redis: ${data.message}`);
+    redis.publish(CHAT_CHANNEL, JSON.stringify(data));
+});
+
+socket.on('disconnect', () => {
+    console.log(`🛑 Disconnected: ${socket.id}`);
+  });
+
+  server.listen(3001, () => {
+  console.log('🚀 co-sketch be on port 3001');
+});
