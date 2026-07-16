@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef,useState} from 'react';
 import {io} from 'socket.io-client';
 
 export default function Canvas(){
@@ -23,6 +23,9 @@ const [myColor] = useState(() => {
 
   //LEARN MORE BETTER USECASES OFO USEREFS -SEE WHY ITS USED 
   useEffect(() => { 
+    const newSocket = io('http://localhost:3001');
+    setSocket(newSocket);
+    newSocket.emit('join_room', roomId);
     newSocket.on('receive_draw_stroke', (data) => {
       if (data.sender === username) return; // Skip drawing our own duplicated strokes
       drawSegmentOnCanvas(data.x1, data.y1, data.x2, data.y2, data.color);
@@ -166,18 +169,7 @@ const [myColor] = useState(() => {
         </div>
 
         {/* Action Input Box Form Deck */}
-        <form onSubmit={handleSendMessage} className="p-3 bg-gray-900 border-t border-gray-800 flex gap-2">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 bg-gray-950 border border-gray-800 rounded-md p-2.5 outline-none text-sm text-gray-100 placeholder-gray-600 focus:border-sky-500 transition-colors"
-          />
-          <button type="submit" className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm px-5 rounded-md active:scale-95 transition-transform">
-            SEND
-          </button>
-        </form>
+        
       </div>
 
       {/* RIGHT SIDE PANEL: CANVAS COLLABORATION SKETCHPAD (60% Split) */}
