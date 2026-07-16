@@ -17,12 +17,14 @@ const redis = new Redis('redis://localhost:6379'); // Connect to Redis server in
 const redisSub = redis.duplicate();//duplicate redis server for pubsub model 
 
 const CHAT_CHANNEL = 'CO_SKETCH_CHANNEL';
+const DRAQW_CHANNEL = 'CO_SKETCH_DRAW_CHANNEL';
 
 
 
 //settig up the reis suscribe model, to listen any new data iin the chat channel
 async function setupRedisSubscription() {
     await redisSub.subscribe(CHAT_CHANNEL);
+    await redisSub.subscribe(DRAW_CHANNEL);
     //setup the duplicate server to the suscribe mode for the channel
     redisSub.on('message',(channel,message)=>{
         if (channel === CHAT_CHANNEL) //double check , if listening to corrext chaneel , there can be multiple chaneel runninng side by side
@@ -34,7 +36,12 @@ async function setupRedisSubscription() {
         message: data.message
       });
     }
+
     //io.to(data.roomId).emit(...): Takes the verified data object and pushes it down the WebSocket pipe to every browser instance currently sitting inside that specific room.
+
+    else if (channel === DRAW_CHANNEL) {
+  io.to(data.roomId).emit('receive_draw_stroke', data);
+}//same as above, but for the drawing channel
   });
 }
 setupRedisSubscription().catch(console.error);
@@ -61,6 +68,10 @@ socket.on('send_chat_message',(data)=>{
 socket.on('disconnect', () => {
     console.log(`🛑 Disconnected: ${socket.id}`);
   });
+
+  socket.on('send_draw_stroke', async (strokeData) => {
+  await redis.publish(DRAW_CHANNEL, JSON.stringify(strokeData));
+});
 });
   server.listen(3001, () => {
   console.log('🚀 co-sketch on port 3001');
