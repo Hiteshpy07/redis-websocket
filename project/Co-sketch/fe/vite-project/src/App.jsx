@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-
+import Canvas from './Canvas';
 export default function App() {
   // 1. Core State Hooks
   const [socket, setSocket] = useState(null);
@@ -162,7 +162,7 @@ export default function App() {
           </button>
         </div>
 
-        <div className="flex-1 w-full h-full bg-gray-900/40 relative">
+        {/* <div className="flex-1 w-full h-full bg-gray-900/40 relative">
           <canvas
             ref={canvasRef}
             onMouseDown={startDrawing}
@@ -171,7 +171,8 @@ export default function App() {
             onMouseLeave={stopDrawing}
             className="absolute top-0 left-0 w-full h-full bg-gray-950 cursor-crosshair"
           />
-        </div>
+        </div> */}
+        <Canvas/>
       </div>
 
     </div>
