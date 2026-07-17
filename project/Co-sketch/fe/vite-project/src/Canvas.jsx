@@ -28,7 +28,7 @@ const [myColor] = useState(() => {
     newSocket.emit('join_room', roomId);
     newSocket.on('receive_draw_stroke', (data) => {
       if (data.sender === username) return; // Skip drawing our own duplicated strokes
-      drawSegmentOnCanvas(data.x1, data.y1, data.x2, data.y2, data.color);
+      drawOnCanvas(data.x1, data.y1, data.x2, data.y2, data.color);
     });
 
     return () => newSocket.disconnect();
@@ -56,53 +56,109 @@ const [myColor] = useState(() => {
 
 
   // Core Native Canvas Drawing Utility
-  const drawSegmentOnCanvas = (x1, y1, x2, y2, strokeColor) => {
+  const drawOnCanvas = (type,x1, y1, x2, y2, strokeColor) => {
     const ctx = contextRef.current;
     if (!ctx) return;
     ctx.strokeStyle = strokeColor;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
-    ctx.stroke();
+    
+    if (type === 'rect') {
+    ctx.rect(x1, y1, x2 - x1, y2 - y1);
+  }else if (type === 'circle') {
+    const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
+  }else if (type === 'line') {
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+  }
+  ctx.stroke();
+
   };
 
 
-  // Mouse Left-Click Down Interceptor
+  /// Mouse Left-Click Down Interceptor
   const startDrawing = ({ nativeEvent }) => {
     const { offsetX, offsetY } = nativeEvent;
     setIsDrawing(true);
+    startPos.current = { x: offsetX, y: offsetY };
     lastPos.current = { x: offsetX, y: offsetY };
-  };
 
+    // 👇 ADD THIS CODE BLOCKED RIGHT HERE 👇
+    const canvas = canvasRef.current;
+    const ctx = contextRef.current;
+    
+    if (canvas && ctx) {
+      // Take a picture of the pixel state BEFORE the shape layout alters it
+      canvasSnapshot.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    }
+  };
   // Drag Pointer Action Coordinate Generator
-  const draw = ({ nativeEvent }) => {
+const draw = ({ nativeEvent }) => {
     if (!isDrawing || !socket) return;
     const { offsetX, offsetY } = nativeEvent;
+    const ctx = contextRef.current; // Grab the canvas brush context
+
+    // 🟢 Path A: Your existing freehand brush logic
+    if (activeTool === 'brush') {
+      const x1 = lastPos.current.x;
+      const y1 = lastPos.current.y;
+      const x2 = offsetX;
+      const y2 = offsetY;
+
+      // Render locally first for instant 0ms visual update speed
+      drawOnCanvas(x1, y1, x2, y2, myColor);
+
+      // Emit the exact vector path to the server pipeline continuously
+      socket.emit('send_draw_stroke', {
+        roomId,
+        sender: username,
+        type: 'brush', // Let the server know this is a brush stroke
+        color: myColor,
+        x1, y1, x2, y2
+      });
+
+      // Keep updating the last position so the line stays connected
+      lastPos.current = { x: offsetX, y: offsetY };
+    } 
     
-    const x1 = lastPos.current.x;
-    const y1 = lastPos.current.y;
-    const x2 = offsetX;
-    const y2 = offsetY;
-
-    // Render locally first for instant 0ms visual update speed
-    drawSegmentOnCanvas(x1, y1, x2, y2, myColor);
-
-    // Emit the exact vector path to the server pipeline
-    socket.emit('send_draw_stroke', {
-      roomId,
-      sender: username,
-      color: myColor,
-      x1, y1, x2, y2
-    });
+    // 🔵 Path B: The new shape preview logic (Rect, Circle, Line)
+    else {
+      if (canvasSnapshot.current && ctx) {
+        // 1. Clear out the previous frame's ghost preview lines
+        ctx.putImageData(canvasSnapshot.current, 0, 0); 
+        
+        // 2. Draw the fresh shape preview from where the click started to the current mouse position
+        drawShapeOnCanvas(
+          activeTool, 
+          startPos.current.x, 
+          startPos.current.y, 
+          offsetX, 
+          offsetY, 
+          myColor
+        );
+      }
+    }
+  };
 
     // Lock position context for next frame segment interval step
     lastPos.current = { x: offsetX, y: offsetY };
   };
 
   // Mouse Released / Exit Actions
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
+  const stopDrawing = ({ nativeEvent }) => {
+  if (!isDrawing) return;
+  setIsDrawing(false);
+
+  if (activeTool !== 'brush' && socket) {
+    const { offsetX, offsetY } = nativeEvent;
+    socket.emit('send_draw_stroke', {
+      roomId, sender: username, type: activeTool, color: myColor,
+      x1: startPos.current.x, y1: startPos.current.y, x2: offsetX, y2: offsetY
+    });
+  }
+};
 
   // Wipe Local Monitor View Buffer Function
   const clearLocalCanvas = () => {
