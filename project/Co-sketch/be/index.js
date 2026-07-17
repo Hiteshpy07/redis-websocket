@@ -17,7 +17,7 @@ const redis = new Redis('redis://localhost:6379'); // Connect to Redis server in
 const redisSub = redis.duplicate();//duplicate redis server for pubsub model 
 
 const CHAT_CHANNEL = 'CO_SKETCH_CHANNEL';
-const DRAQW_CHANNEL = 'CO_SKETCH_DRAW_CHANNEL';
+const DRAW_CHANNEL = 'CO_SKETCH_DRAW_CHANNEL';
 
 
 
@@ -40,6 +40,7 @@ async function setupRedisSubscription() {
     //io.to(data.roomId).emit(...): Takes the verified data object and pushes it down the WebSocket pipe to every browser instance currently sitting inside that specific room.
 
     else if (channel === DRAW_CHANNEL) {
+      const data = JSON.parse(message)
   io.to(data.roomId).emit('receive_draw_stroke', data);
 }//same as above, but for the drawing channel
   });
