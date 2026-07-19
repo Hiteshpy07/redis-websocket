@@ -6,6 +6,7 @@ const [socket, setSocket] = useState(null);
 const [message, setMessage] = useState('');
 const [chatLog, setChatLog] = useState([]);
 const [isDrawing, setIsDrawing] = useState(false);
+const [activeTool, setActiveTool] = useState("brush"); // Options: "brush", "rect", "circle", "line"
 
 const roomId = "meeting-123";
 
@@ -95,42 +96,42 @@ const [myColor] = useState(() => {
     }
   };
   // Drag Pointer Action Coordinate Generator
-const draw = ({ nativeEvent }) => {
+// Drag Pointer Action Coordinate Generator
+  const draw = ({ nativeEvent }) => {
     if (!isDrawing || !socket) return;
     const { offsetX, offsetY } = nativeEvent;
-    const ctx = contextRef.current; // Grab the canvas brush context
+    const ctx = contextRef.current;
 
-    // 🟢 Path A: Your existing freehand brush logic
+    // 🟢 Path A: Freehand brush continuous vector stream logic
     if (activeTool === 'brush') {
       const x1 = lastPos.current.x;
       const y1 = lastPos.current.y;
-      const x2 = offsetX;
-      const y2 = offsetY;
+      
+      // Paint locally and stream to server pipeline instantly
+      drawOnCanvas('brush', x1, y1, offsetX, offsetY, myColor);
 
-      // Render locally first for instant 0ms visual update speed
-      drawOnCanvas(x1, y1, x2, y2, myColor);
-
-      // Emit the exact vector path to the server pipeline continuously
       socket.emit('send_draw_stroke', {
         roomId,
         sender: username,
-        type: 'brush', // Let the server know this is a brush stroke
+        type: 'brush',
         color: myColor,
-        x1, y1, x2, y2
+        x1, 
+        y1, 
+        x2: offsetX, 
+        y2: offsetY
       });
 
-      // Keep updating the last position so the line stays connected
+      // Track the current brush terminal position
       lastPos.current = { x: offsetX, y: offsetY };
     } 
-    
-    // 🔵 Path B: The new shape preview logic (Rect, Circle, Line)
+    // 🔵 Path B: Shape preview image tracking simulation logic
     else {
       if (canvasSnapshot.current && ctx) {
-        // 1. Clear out the previous frame's ghost preview lines
+        // Clear out the previous frame's temporary preview lines
         ctx.putImageData(canvasSnapshot.current, 0, 0); 
         
-        // 2. Draw the fresh shape preview from where the click started to the current mouse position
-        drawShapeOnCanvas(
+        // Render the fresh dynamic geometric shape layout
+        drawOnCanvas(
           activeTool, 
           startPos.current.x, 
           startPos.current.y, 
@@ -140,25 +141,29 @@ const draw = ({ nativeEvent }) => {
         );
       }
     }
-  };
-
-    // Lock position context for next frame segment interval step
-    lastPos.current = { x: offsetX, y: offsetY };
-  };
+  }; // 🏁 One single clean function closer block right here!
 
   // Mouse Released / Exit Actions
+// Make sure { nativeEvent } is explicitly added here!
   const stopDrawing = ({ nativeEvent }) => {
-  if (!isDrawing) return;
-  setIsDrawing(false);
+    if (!isDrawing) return;
+    setIsDrawing(false);
 
-  if (activeTool !== 'brush' && socket) {
-    const { offsetX, offsetY } = nativeEvent;
-    socket.emit('send_draw_stroke', {
-      roomId, sender: username, type: activeTool, color: myColor,
-      x1: startPos.current.x, y1: startPos.current.y, x2: offsetX, y2: offsetY
-    });
-  }
-};
+    if (activeTool !== 'brush' && socket) {
+      const { offsetX, offsetY } = nativeEvent; // Now this reads perfectly!
+      
+      socket.emit('send_draw_stroke', {
+        roomId,
+        sender: username,
+        type: activeTool,
+        color: myColor,
+        x1: startPos.current.x,
+        y1: startPos.current.y,
+        x2: offsetX,
+        y2: offsetY
+      });
+    }
+  };
 
   // Wipe Local Monitor View Buffer Function
   const clearLocalCanvas = () => {
@@ -167,14 +172,12 @@ const draw = ({ nativeEvent }) => {
     if (canvas && ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-  };
 
- return (
-    // <div>canvas area</div>
-    <div className="flex h-screen w-screen bg-gray-950 text-gray-100 font-mono overflow-hidden">
+
+    return (
+
+    <div className="flex h-screen w-screen bg-w-950 text-gray-100 font-mono overflow-hidden">
       
-
-
       {/* RIGHT SIDE PANEL: CANVAS COLLABORATION SKETCHPAD (60% Split) */}
       <div className="w-[100%] h-full flex flex-col bg-gray-950 relative">
         
@@ -187,6 +190,8 @@ const draw = ({ nativeEvent }) => {
             <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: myColor }} />
           </div>
         </div>
+        
+    
         {/* Boundary Absolute Mounting Container Frame */}
         <div className="flex-1 w-full h-full bg-gray-900/40 relative">
           <canvas
@@ -203,4 +208,33 @@ const draw = ({ nativeEvent }) => {
     </div>
   );
 }
+}
+
+
+//shape buttons
+
+
+// <div className="flex bg-gray-950 border border-gray-800 p-1 rounded-md gap-1">
+//         {[
+//           { id: "brush", label: "🖌️ Free Hand" },
+//           { id: "rect", label: "⬜ Rectangle" },
+//           { id: "circle", label: "⭕ Circle" },
+//           { id: "line", label: "📏 Straight Line" }
+//         ].map((tool) => (
+//           <button
+//             key={tool.id}
+//             type="button"
+//             onClick={() => setActiveTool(tool.id)}   
+//             className={`px-3 py-1.5 rounded text-xs font-bold font-mono transition-all duration-150 ${
+//               activeTool === tool.id 
+//                 ? "bg-sky-600 text-white shadow-md shadow-sky-900/30 scale-105" 
+//                 : "text-gray-400 hover:bg-gray-900 hover:text-gray-200"
+//             }`}
+//           >
+//             {tool.label}
+//           </button>
+//         ))}
+//       </div>
+
+
 
