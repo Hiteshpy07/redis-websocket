@@ -197,7 +197,13 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
             >
               Clear Board
             </button>
-            
+            {/* a disconnect button from the room , no need to refesh anymore */}
+            <button 
+              onClick={onLogout}
+              className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 px-3 py-1 rounded transition-colors"
+            >
+              Disconnect
+            </button>
           </div>
         </div>
 
