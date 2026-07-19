@@ -152,7 +152,20 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
     if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  //screenshot of the canvas and download it as a png file
+  const downloadCanvasSnapshot = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
+    const imageStream = canvas.toDataURL("image/png");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = imageStream;
+    downloadLink.download = `SyncBoard-Export-${new Date().toISOString().slice(0,10)}.png`;
+    
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
 
   return (
     <div className="flex h-screen w-screen bg-gray-950 text-gray-100 font-mono overflow-hidden relative">
@@ -190,7 +203,12 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
           </div>
 
           <div className="flex items-center gap-2">
-           
+            <button 
+              onClick={downloadCanvasSnapshot}
+              className="text-xs bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-900/50 px-3 py-1 rounded transition-colors"
+            >
+              📸 Export Image
+            </button>
             <button 
               onClick={clearLocalCanvas} 
               className="text-xs bg-red-950 hover:bg-red-900 text-red-400 border border-red-900/50 px-3 py-1 rounded transition-colors"
@@ -209,7 +227,7 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
 
         {/* user details , ink color , room id , username */}
         <div className="px-4 py-2 border-b border-gray-800 bg-gray-950/40 text-xs text-gray-400 flex justify-between items-center z-10">
-          <span>Identity context: <span className="text-sky-400 font-bold">@{username}</span> in room <span className="text-emerald-400 font-bold">#{roomId}</span></span>
+          <span><span className="text-sky-400 font-bold">@{username}</span> in room <span className="text-emerald-400 font-bold">#{roomId}</span></span>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] text-gray-500">Ink Selection Color:</span>
             <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: myColor }} />
