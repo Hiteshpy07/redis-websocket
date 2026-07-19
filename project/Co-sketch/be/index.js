@@ -26,16 +26,19 @@ async function setupRedisSubscription() {
     await redisSub.subscribe(CHAT_CHANNEL);
     await redisSub.subscribe(DRAW_CHANNEL);
     //setup the duplicate server to the suscribe mode for the channel
-    redisSub.on('message',(channel,message)=>{
-        if (channel === CHAT_CHANNEL) //double check , if listening to corrext chaneel , there can be multiple chaneel runninng side by side
-            {
-                console.log(`Received message from Redis channel ${channel}: ${message}`);
-                const data = JSON.parse(message);//good practice he- always sent datat from BE to FE IN JSON FORMAT, EASE TO USE THERE
-                io.to(data.roomId).emit('receive_chat_message', {
-        user: data.user,
-        message: data.message
-      });
+   redisSub.on('message', (channel, message) => {
+    if (channel === CHAT_CHANNEL) {
+        console.log(`Received message from Redis channel ${channel}: ${message}`);
+        const data = JSON.parse(message); 
+        
+        // Broadcast the full payload back out to the sockets in the room
+        io.to(data.roomId).emit('receive_chat_message', {
+            user: data.user,
+            message: data.message,
+            image: data.image // 🚀 Added this line to pass the image payload to the frontend!
+        });
     }
+}); // 🏁 Safely closed both the if-statement and the subscriber block brackets!
 
     //io.to(data.roomId).emit(...): Takes the verified data object and pushes it down the WebSocket pipe to every browser instance currently sitting inside that specific room.
 
@@ -59,11 +62,12 @@ socket.on('join_room',(roomID)=>{
 
 })
 
-socket.on('send_chat_message',(data)=>{
-    console.log(`Received message from client ${socket.id}: ${data.message}`);
-    // Publish the message to the Redis channel
-    console.log(`⚡ Publishing to Redis: ${data.message}`);
-    redis.publish(CHAT_CHANNEL, JSON.stringify(data));
+socket.on('send_chat_message', (data) => {
+  const logContent = data.image ? "[Media Attachment Payload]" : data.message;
+  console.log(`Received from client ${socket.id}: ${logContent}`);
+  
+  // Publish the raw unified data object directly to the Redis engine
+  redis.publish(CHAT_CHANNEL, JSON.stringify(data));
 });
 
 socket.on('disconnect', () => {
