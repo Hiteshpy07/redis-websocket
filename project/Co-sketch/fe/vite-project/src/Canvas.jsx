@@ -17,6 +17,10 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
   const [isChatOpen, setIsChatOpen] = useState(false);  
   const [pendingImage, setPendingImage] = useState(null); // Tracks base64 image preview 
 
+  // Controls live inline typing overlay
+const [textOverlay, setTextOverlay] = useState({ visible: false, x: 0, y: 0, text: '' });
+const textInputRef = useRef(null);
+
   const roomId = activeRoom;
   const username = authenticatedUser;
 
@@ -31,6 +35,12 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
   const lastPos = useRef({ x: 0, y: 0 });
   const startPos = useRef({ x: 0, y: 0 });      
   const canvasSnapshot = useRef(null);    
+
+  useEffect(() => {
+  if (textOverlay.visible && textInputRef.current) {
+    textInputRef.current.focus();
+  }
+}, [textOverlay.visible]);
 
   // WebSocket connection setup & listener streams
   useEffect(() => { 
@@ -104,6 +114,28 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
     }
   };
 
+const submitTextOverlay = () => {
+    if (textOverlay.text.trim()) {
+      drawOnCanvas('text', textOverlay.x, textOverlay.y, 0, 0, myColor, textOverlay.text);
+
+      if (socket) {
+        socket.emit('send_draw_stroke', {
+          roomId,
+          sender: username,
+          type: 'text',
+          x1: textOverlay.x,
+          y1: textOverlay.y,
+          color: myColor,
+          textValue: textOverlay.text
+        });
+      }
+    }
+    // Prevent state collision during typing/blur
+    requestAnimationFrame(() => {
+      setTextOverlay({ visible: false, x: 0, y: 0, text: '' });
+    });
+  };
+
   // Dispatch chat messages over socket pipe
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -125,28 +157,22 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
   const startDrawing = ({ nativeEvent }) => {
     const { offsetX, offsetY } = nativeEvent;
 
-    // 🚀 FIXED: Text Tool Handler Block
-    if (activeTool === 'text') {
-      const text = prompt("Enter your text:");
-      if (text && text.trim()) {
-        // 1. Render locally (passing myColor instead of undefined strokeColor)
-        drawOnCanvas('text', offsetX, offsetY, 0, 0, myColor, text);
-        
-        // 2. Broadcast over WebSockets
-        if (socket) {
-          socket.emit('send_draw_stroke', {
-            roomId,
-            sender: username,
-            type: 'text',
-            x1: offsetX,
-            y1: offsetY,
-            color: myColor,
-            textValue: text
-          });
-        }
-      }
-      return; // Exit early to avoid triggering shape drag preview
+   if (activeTool === 'text') {
+    // If an input is already open elsewhere, commit its text first
+    if (textOverlay.visible && textOverlay.text.trim()) {
+      submitTextOverlay();
+      return;
     }
+
+    // Position the input exactly at click location
+    setTextOverlay({
+      visible: true,
+      x: offsetX,
+      y: offsetY,
+      text: ''
+    });
+    return; // Stop drag logic
+  }
 
     setIsDrawing(true);
     startPos.current = { x: offsetX, y: offsetY };
@@ -316,6 +342,35 @@ export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
             onMouseLeave={stopDrawing}
             className="absolute top-0 left-0 w-full h-full bg-gray-950 cursor-crosshair"
           />
+          {textOverlay.visible && (
+    <input
+      ref={textInputRef}
+      type="text"
+      value={textOverlay.text}
+      onMouseDown={(e) => e.stopPropagation()} // 🚀 Stops canvas mouse events while typing
+      onChange={(e) => setTextOverlay((prev) => ({ ...prev, text: e.target.value }))}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') submitTextOverlay();
+        if (e.key === 'Escape') setTextOverlay({ visible: false, x: 0, y: 0, text: '' });
+      }}
+      style={{
+        position: 'absolute',
+        left: `${textOverlay.x}px`,
+        top: `${textOverlay.y}px`,
+        color: myColor,
+        font: '24px sans-serif',
+        background: 'rgba(3, 7, 18, 0.8)', // Slightly dark background so text is readable
+        border: '1px dashed #38bdf8',
+        outline: 'none',
+        padding: '2px 6px',
+        margin: '0',
+        lineHeight: '1',
+        zIndex: 30,
+        minWidth: '150px'
+      }}
+      placeholder="Type & press Enter..."
+    />
+  )}
         </div>
       </div>
 
