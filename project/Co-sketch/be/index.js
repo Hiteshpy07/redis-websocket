@@ -38,10 +38,8 @@ async function setupRedisSubscription() {
             image: data.image // 🚀 Added this line to pass the image payload to the frontend!
         });
     }
-}); // 🏁 Safely closed both the if-statement and the subscriber block brackets!
-
+// 🏁 Safely closed both the if-statement and the subscriber block brackets!
     //io.to(data.roomId).emit(...): Takes the verified data object and pushes it down the WebSocket pipe to every browser instance currently sitting inside that specific room.
-
     else if (channel === DRAW_CHANNEL) {
       const data = JSON.parse(message)
   io.to(data.roomId).emit('receive_draw_stroke', data);
@@ -49,7 +47,6 @@ async function setupRedisSubscription() {
   });
 }
 setupRedisSubscription().catch(console.error);
-
 
 //IOSOCKET CONNECTION
 io.on('connection',(socket)=>{
