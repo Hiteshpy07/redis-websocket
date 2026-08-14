@@ -1,6 +1,6 @@
 import React from 'react'
 
-function auth({ handleLoginSubmit, inputName, setInputName, inputRoom, setInputRoom }) {
+function Auth({ handleLoginSubmit, inputName, setInputName, inputRoom, setInputRoom }) {
 
         return (
 
@@ -50,4 +50,4 @@ function auth({ handleLoginSubmit, inputName, setInputName, inputRoom, setInputR
     }
 
 
-export default auth
+export default Auth

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Canvas from './Canvas';
-import auth from './auth/auth';
+import Auth from './AuthFE';
 
 export default function App() {
   const [userAuth, setUserAuth] = useState(null);
@@ -21,7 +21,7 @@ export default function App() {
   // Once authenticated, pass states straight down to Canvas workspace
   return (
     !userAuth ? (
-      <auth 
+      <Auth 
         handleLoginSubmit={handleLoginSubmit}
         inputName={inputName}
         setInputName={setInputName}
