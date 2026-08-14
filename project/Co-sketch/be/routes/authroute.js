@@ -96,3 +96,4 @@ router.post("/github",async(req,res)=>{
   }
     })
 
+export default router;

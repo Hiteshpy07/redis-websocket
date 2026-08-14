@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { redis, redisSub } from './services/redis.js'; //importing the redis server and the duplicate server for pubsub model
 import { initSocket } from './services/websoc.js'; //importing the socket.io server and the raw http server instance
-
+import jwt from 'jsonwebtoken';
 
 const app = express();
 app.use(cors({origin: '*'}));
@@ -12,6 +12,36 @@ const { server, io } = initSocket(app);// made it from the exported socket io in
 
 const CHAT_CHANNEL = 'CO_SKETCH_CHANNEL';
 const DRAW_CHANNEL = 'CO_SKETCH_DRAW_CHANNEL';
+
+
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+
+  if (!token) {
+    console.log(`❌ Auth rejected: Missing token from client ${socket.id}`);
+    return next(new Error('Unauthorized: Missing Token'));
+  }
+
+  // Verify signature using your secret key from environment variables
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      console.log(`❌ Auth rejected: Invalid token from client ${socket.id}`);
+      return next(new Error('Unauthorized: Invalid or expired token'));
+    }
+
+    // Attach verified identity details directly to the socket session
+    socket.user = {
+      id: decoded.id,
+      name: decoded.name,
+      email: decoded.email,
+      avatar: decoded.avatar,
+    };
+
+    console.log(`✅ Authenticated user: ${socket.user.name} (${socket.user.email})`);
+    next(); // Access approved!
+  });
+});
 
 //settig up the reis suscribe model, to listen any new data iin the chat channel
 async function setupRedisSubscription() {
