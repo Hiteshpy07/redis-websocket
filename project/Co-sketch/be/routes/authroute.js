@@ -57,4 +57,42 @@ router.post("/google",async(req,res)=>{
 
 router.post("/github",async(req,res)=>{
 
-})
+
+    const {code,redirectUrl}=req.body
+
+    try{
+    const response = await axios.post('https://github.com/login/oauth/access_token',{
+        code:code,
+        client_id:process.env.GITHUB_CLIENT_ID,
+        client_secret:process.env.GITHUB_CLIENT_SECRET,
+        redirect_uri:redirectUrl,
+        grant_type:'authorization_code'
+    })
+
+    const acessToken=response.data.access_token;
+    const userResponse = await axios.get('https://api.github.com/user', {
+        headers: { Authorization: `Bearer ${acessToken}` },
+      });
+      const userData = userResponse.data;
+      console.log(userData);
+
+      const jwttoken=jwt.sign(
+        {
+            id:userData.id,
+            email:userData.email,
+            name:userData.name,
+            picture:userData.picture
+
+        },process.env.JWT_SECRET,
+        {expiresIn:'7d' }
+      )
+
+      res.json({ success: true, token: jwttoken, user: userData });
+    }
+
+ catch (error) {
+    console.error('Google Auth Error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to authenticate with Google' });
+  }
+    })
+
