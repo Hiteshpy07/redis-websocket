@@ -7,7 +7,7 @@ import { TbStrokeStraight } from "react-icons/tb";
 import { FaPaintbrush } from "react-icons/fa6";
 import { IoText } from "react-icons/io5";
 
-export default function Canvas({ authenticatedUser, activeRoom, onLogout }) {
+export default function Canvas({ authenticatedUser, userAvatar, token, activeRoom, onLogout }) {
   // Core Operational States
   const [socket, setSocket] = useState(null);
   const [message, setMessage] = useState('');
@@ -43,27 +43,32 @@ const textInputRef = useRef(null);
 }, [textOverlay.visible]);
 
   // WebSocket connection setup & listener streams
-  useEffect(() => { 
-    const newSocket = io('http://localhost:3001');
-    setSocket(newSocket);
-    newSocket.emit('join_room', roomId);
-    
-    // Chat Stream Channel
-    newSocket.on('receive_chat_message', (data) => {
-      const logMessage = data.image 
-        ? `${data.user}: ${data.message} [IMAGE_ATTACHMENT]${data.image}` 
-        : `${data.user}: ${data.message}`;
-      setChatLog((prev) => [...prev, logMessage]);
-    });
+ // REPLACE your socket useEffect with this:
+useEffect(() => { 
+  const newSocket = io('http://localhost:3001', {
+    auth: {
+      token: token //  Passed verified JWT to be
+    }
+  });
+  setSocket(newSocket);
+  newSocket.emit('join_room', roomId);
+  
+  // chat channel
+  newSocket.on('receive_chat_message', (data) => {
+    const logMessage = data.image 
+      ? `${data.user}: ${data.message} [IMAGE_ATTACHMENT]${data.image}` 
+      : `${data.user}: ${data.message}`;
+    setChatLog((prev) => [...prev, logMessage]);
+  });
 
-    // Drawing Vector Channel
-    newSocket.on('receive_draw_stroke', (data) => {
-      if (data.sender === username) return; // Skip echoed strokes
-      drawOnCanvas(data.type, data.x1, data.y1, data.x2, data.y2, data.color, data.textValue);
-    });
+  // draw channel
+  newSocket.on('receive_draw_stroke', (data) => {
+    if (data.sender === username) return; // Skip echoed strokes
+    drawOnCanvas(data.type, data.x1, data.y1, data.x2, data.y2, data.color, data.textValue);
+  });
 
-    return () => newSocket.disconnect();
-  }, [username, roomId]);
+  return () => newSocket.disconnect();
+}, [username, roomId, token]); //token added to dependency array to ensure socket reconnects if token changes
 
   // Handle high-DPI crisp pixel scaling on canvas mount
   useEffect(() => {
@@ -325,7 +330,12 @@ const submitTextOverlay = () => {
 
         {/* User context banner */}
         <div className="px-4 py-2 border-b border-gray-800 bg-gray-950/40 text-xs text-gray-400 flex justify-between items-center z-10">
-          <span><span className="text-sky-400 font-bold">@{username}</span> in room <span className="text-emerald-400 font-bold">#{roomId}</span></span>
+          <div className="flex items-center gap-2">
+    {userAvatar && (
+      <img src={userAvatar} alt="Avatar" className="w-5 h-5 rounded-full border border-gray-700 object-cover" />
+    )}
+    <span><span className="text-sky-400 font-bold">@{username}</span> in room <span className="text-emerald-400 font-bold">#{roomId}</span></span>
+  </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] text-gray-500">Ink Selection Color:</span>
             <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: myColor }} />
