@@ -64,14 +64,26 @@ export async function loginWithOAuth(provider) {
 
 // Helper to check for existing logged-in session
 export async function getSession() {
-  const result = await chrome.storage.session.get(["authToken", "currentUser"]);
-  if (result.authToken && result.currentUser) {
-    return { token: result.authToken, user: result.currentUser };
+  try {
+    if (typeof chrome !== 'undefined' && chrome?.storage?.session) {
+      const result = await chrome.storage.session.get(["authToken", "currentUser"]);
+      if (result.authToken && result.currentUser) {
+        return { token: result.authToken, user: result.currentUser };
+      }
+    }
+  } catch (e) {
+    console.warn("Storage session lookup error:", e);
   }
   return null;
 }
 
 // Logout helper
 export async function logoutUser() {
-  await chrome.storage.session.remove(["authToken", "currentUser"]);
+  try {
+    if (typeof chrome !== 'undefined' && chrome?.storage?.session) {
+      await chrome.storage.session.remove(["authToken", "currentUser"]);
+    }
+  } catch (e) {
+    console.warn("Storage session remove error:", e);
+  }
 }

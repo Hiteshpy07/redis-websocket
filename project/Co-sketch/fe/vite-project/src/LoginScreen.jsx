@@ -1,6 +1,6 @@
 // src/components/LoginScreen.jsx
 import React, { useState } from "react";
-import { loginWithOAuth } from "../services/auth";
+import { loginWithOAuth } from "./Oauth";
 import { FaGoogle, FaGithub } from "react-icons/fa";
 
 export default function LoginScreen({ onLoginSuccess }) {
