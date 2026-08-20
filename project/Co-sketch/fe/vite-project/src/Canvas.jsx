@@ -22,12 +22,15 @@ export default function Canvas({ authenticatedUser, userAvatar, token, activeRoo
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [imageTransformState, setImageTransformState] = useState({ isDragging: false, isResizing: false, handle: null, startX: 0, startY: 0, startObj: null });
 
-  // Custom stroke color & width states
+  // Custom  COLORSN. ADDED WITH SELECTED STROKE WIDTH TOO
+    
   const paletteColors = ["#38bdf8", "#f43f5e", "#10b981", "#a855f7", "#eab308", "#f97316", "#ffffff", "#0284c7"];
   const [selectedColor, setSelectedColor] = useState(() => {
     return paletteColors[Math.floor(Math.random() * paletteColors.length)];
   });
   const [selectedLineWidth, setSelectedLineWidth] = useState(4);
+
+
 
   // Inline typing overlay
   const [textOverlay, setTextOverlay] = useState({ visible: false, x: 0, y: 0, text: '' });
