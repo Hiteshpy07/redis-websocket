@@ -15,22 +15,24 @@ const DRAW_CHANNEL = 'CO_SKETCH_DRAW_CHANNEL';
 
 
 
+// Socket Authentication Middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
 
+  // [TEMPORARY BYPASS FOR TESTING]: OAuth / JWT Verification is commented out below.
+  // Uncomment this block when ready to enforce Google / GitHub OAuth!
+  /*
   if (!token) {
     console.log(`❌ Auth rejected: Missing token from client ${socket.id}`);
     return next(new Error('Unauthorized: Missing Token'));
   }
 
-  // Verify signature using your secret key from environment variables
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       console.log(`❌ Auth rejected: Invalid token from client ${socket.id}`);
       return next(new Error('Unauthorized: Invalid or expired token'));
     }
 
-    // Attach verified identity details directly to the socket session
     socket.user = {
       id: decoded.id,
       name: decoded.name,
@@ -39,8 +41,19 @@ io.use((socket, next) => {
     };
 
     console.log(`✅ Authenticated user: ${socket.user.name} (${socket.user.email})`);
-    next(); // Access approved!
+    next();
   });
+  */
+
+  // Allow guest / dev testing connections
+  socket.user = {
+    id: socket.id,
+    name: 'Guest-' + socket.id.slice(0, 4),
+    email: 'guest@cosketch.local',
+    avatar: null
+  };
+  console.log(`⚡ Testing connection approved for client ${socket.id}`);
+  next();
 });
 
 //settig up the reis suscribe model, to listen any new data iin the chat channel
