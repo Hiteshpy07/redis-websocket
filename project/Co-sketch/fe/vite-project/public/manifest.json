@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Co-Sketch",
+  "version": "1.0.0",
+  "description": "Real-time collaborative sketching and whiteboard.",
+  "action": {
+    "default_title": "Open Co-Sketch"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "identity",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:3001/*",
+    "ws://localhost:3001/*",
+    "https://*.google.com/*",
+    "https://*.github.com/*"
+  ]
+}
