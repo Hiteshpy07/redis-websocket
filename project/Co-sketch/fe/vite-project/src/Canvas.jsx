@@ -97,7 +97,7 @@ export default function Canvas({ authenticatedUser, userAvatar, token, activeRoo
 
   // WebSocket connection setup & listener streams
   useEffect(() => { 
-    const newSocket = io('http://localhost:3001', {
+    const newSocket = io('https://co-sketch.onrender.com', {
       auth: {
         token: token
       }

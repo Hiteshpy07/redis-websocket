@@ -16,8 +16,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "http://localhost:3001/*",
-    "ws://localhost:3001/*",
+    "https://co-sketch.onrender.com/*",
+    "wss://co-sketch.onrender.com/*",
     "https://*.google.com/*",
     "https://*.github.com/*"
   ]

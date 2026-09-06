@@ -1,8 +1,8 @@
 // src/services/auth.js
 
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
-const GITHUB_CLIENT_ID = "YOUR_GITHUB_CLIENT_ID";
-const BACKEND_URL = "http://localhost:3001";
+const GOOGLE_CLIENT_ID = "757697157413-8m2fgm99av422srq9sqr5lflr714qcct.apps.googleusercontent.com";
+const GITHUB_CLIENT_ID = "Ov23liFk35wT34LUSWft";
+const BACKEND_URL = "https://co-sketch.onrender.com";
 
 export async function loginWithOAuth(provider) {
   // 1. Chrome's unique extension redirect URL: https://<id>.chromiumapp.org/
