@@ -6,7 +6,13 @@ import LoginScreen from './LoginScreen';
 export default function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeRoom] = useState("general-squad");
+  const [activeRoom, setActiveRoom] = useState(() => {
+    try {
+      return sessionStorage.getItem('co_sketch_room') || "general-squad";
+    } catch {
+      return "general-squad";
+    }
+  });
 
   // Check and restore existing session
   useEffect(() => {
@@ -33,6 +39,17 @@ export default function App() {
     setSession(null);
   };
 
+  const handleLoginSuccess = (newSession, targetRoom) => {
+    const room = (targetRoom || activeRoom || "general-squad").toLowerCase();
+    setActiveRoom(room);
+    try {
+      sessionStorage.setItem('co_sketch_room', room);
+    } catch (e) {
+      console.warn("Could not save room to sessionStorage", e);
+    }
+    setSession(newSession);
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-gray-950 text-sky-400 font-mono text-sm">
@@ -57,6 +74,6 @@ export default function App() {
     );
   }
 
-  // Google / GitHub OAuth Login Screen
-  return <LoginScreen onLoginSuccess={(newSession) => setSession(newSession)} />;
+  // Google / GitHub OAuth & Manual Guest Login Screen
+  return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
 }

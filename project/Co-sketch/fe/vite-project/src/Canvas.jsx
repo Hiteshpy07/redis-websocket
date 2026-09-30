@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import { BACKEND_URL } from './Oauth';
 import { FiPlusCircle, FiImage, FiCheck, FiX, FiMaximize2, FiMove, FiDownload, FiTrash2, FiLogOut } from "react-icons/fi";
 import { FaRegSquare } from "react-icons/fa6";
 import { FaRegCircle } from "react-icons/fa";
@@ -97,7 +98,7 @@ export default function Canvas({ authenticatedUser, userAvatar, token, activeRoo
 
   // WebSocket connection setup & listener streams
   useEffect(() => { 
-    const newSocket = io('https://co-sketch.onrender.com', {
+    const newSocket = io(BACKEND_URL, {
       auth: {
         token: token
       }

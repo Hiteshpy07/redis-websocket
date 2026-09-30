@@ -1,16 +1,26 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRouter from './routes/authroute.js';
 import { redis, redisSub } from './services/redis.js'; //importing the redis server and the duplicate server for pubsub model
 import { initSocket } from './services/websoc.js'; //importing the socket.io server and the raw http server instance
 import jwt from 'jsonwebtoken';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(cors({origin: '*'}));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+
 app.use('/api/auth', authRouter);
    
 const { server, io } = initSocket(app);// made it from the exported socket io instance from websoc.js file
