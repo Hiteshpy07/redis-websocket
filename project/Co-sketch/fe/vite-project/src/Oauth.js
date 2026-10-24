@@ -3,7 +3,8 @@
 const GOOGLE_CLIENT_ID = "757697157413-8m2fgm99av422srq9sqr5lflr714qcct.apps.googleusercontent.com";
 const GITHUB_CLIENT_ID = "Ov23liFk35wT34LUSWft";
 
-export const BACKEND_URL = "https://co-sketch.onrender.com";
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+
 
 export const isChromeExtension = () => {
   return typeof chrome !== 'undefined' && !!(chrome?.identity?.getRedirectURL);
